@@ -7,6 +7,7 @@
 
 import SwiftUI
 import SwiftData
+import UIKit
 
 struct FavoritesView: View {
     @Environment(\.modelContext) private var modelContext
@@ -175,6 +176,7 @@ struct QuoteDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @State private var showingShareSheet = false
+    @State private var shareImage: UIImage? = nil
     
     var body: some View {
         NavigationStack {
@@ -205,6 +207,10 @@ struct QuoteDetailView: View {
                         
                         // 分享按钮
                         Button(action: {
+                            // 渲染QuoteCardView为图片
+                            let quoteView = QuoteCardView(quote: quote)
+                                .frame(width: UIScreen.main.bounds.width - 40)
+                            shareImage = ShareManager.shared.renderViewToImage(quoteView)
                             showingShareSheet = true
                         }) {
                             VStack(spacing: 5) {
@@ -268,9 +274,24 @@ struct QuoteDetailView: View {
                     }
                 }
             }
+            .background(Color(.systemBackground))
+            .onChange(of: showingShareSheet) { newValue in
+                if !newValue {
+                    // 重置分享图片
+                    shareImage = nil
+                }
+            }
+        }
+        // 添加分享表单
+        .background {
+            ShareSheetView(isPresented: $showingShareSheet, items: [
+                shareImage,
+                quote.author != nil ? "\"\(quote.content)\" —— \(quote.author!)" : "\"\(quote.content)\""
+            ].compactMap { $0 })
         }
     }
 }
+
 
 // 详情行
 struct DetailRow: View {

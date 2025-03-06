@@ -33,7 +33,7 @@ struct QuoteCardView: View {
             VStack(spacing: 20) {
                 // 语录内容
                 Text("\"\(quote.content)\"")
-                    .font(getFont(size: 24))
+                    .font(FontManager.shared.getFont(name: fontName, size: 24))
                     .fontWeight(.medium)
                     .multilineTextAlignment(.center)
                     .foregroundColor(textColor)
@@ -42,7 +42,7 @@ struct QuoteCardView: View {
                 // 作者
                 if let author = quote.author, !author.isEmpty {
                     Text("—— \(author)")
-                        .font(getFont(size: 18))
+                        .font(FontManager.shared.getFont(name: fontName, size: 18))
                         .fontWeight(.regular)
                         .foregroundColor(textColor.opacity(0.8))
                         .padding(.top, 5)
@@ -98,18 +98,7 @@ struct QuoteCardView: View {
     
     // 获取字体
     private func getFont(size: CGFloat) -> Font {
-        switch fontName {
-        case "system":
-            return .system(size: size)
-        case "serif":
-            return .system(size: size, design: .serif)
-        case "rounded":
-            return .system(size: size, design: .rounded)
-        case "monospaced":
-            return .system(size: size, design: .monospaced)
-        default:
-            return .system(size: size)
-        }
+        FontManager.shared.getFont(name: fontName, size: size)
     }
 }
 
@@ -121,14 +110,7 @@ struct QuoteCustomizeView: View {
     let quote: Quote
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
-    
-    // 可用的字体
-    let availableFonts = [
-        "system": "系统",
-        "serif": "衬线",
-        "rounded": "圆角",
-        "monospaced": "等宽"
-    ]
+    @State private var showingFontBrowser = false
     
     // 可用的颜色
     let availableColors: [Color] = [
@@ -181,29 +163,62 @@ struct QuoteCustomizeView: View {
                 }
                 
                 // 字体选择
-                Section(header: Text("字体")) {
-                    Picker("字体", selection: $fontName) {
-                        ForEach(Array(availableFonts.keys), id: \.self) { key in
-                            Text(availableFonts[key] ?? key)
-                                .tag(key)
-                        }
+                Section(header: HStack {
+                    Text("字体")
+                    Spacer()
+                    Button("更多字体") {
+                        showingFontBrowser = true
                     }
-                    .pickerStyle(.segmented)
+                    .font(.caption)
+                    .foregroundColor(.blue)
+                }) {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 15) {
+                            ForEach(Array(FontManager.shared.availableFonts.keys), id: \.self) { key in
+                                VStack {
+                                    Text("永恒")
+                                        .font(FontManager.shared.getFont(name: key, size: 20))
+                                        .frame(width: 60, height: 60)
+                                        .background(backgroundColor.opacity(0.3))
+                                        .foregroundColor(textColor)
+                                        .cornerRadius(10)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 10)
+                                                .stroke(Color.blue, lineWidth: fontName == key ? 3 : 0)
+                                        )
+                                    
+                                    Text(FontManager.shared.getDisplayName(for: key))
+                                        .font(.caption)
+                                        .foregroundColor(.primary)
+                                }
+                                .onTapGesture {
+                                    fontName = key
+                                }
+                            }
+                        }
+                        .padding(.vertical, 10)
+                    }
                 }
                 
                 // 预览
                 Section(header: Text("预览")) {
                     VStack(spacing: 15) {
                         Text("\"\(quote.content)\"")
-                            .font(getFont(size: 18))
+                            .font(FontManager.shared.getFont(name: fontName, size: 18))
                             .multilineTextAlignment(.center)
                             .foregroundColor(textColor)
                         
                         if let author = quote.author, !author.isEmpty {
                             Text("—— \(author)")
-                                .font(getFont(size: 14))
+                                .font(FontManager.shared.getFont(name: fontName, size: 14))
                                 .foregroundColor(textColor.opacity(0.8))
                         }
+                        
+                        // 显示当前字体名称
+                        Text("当前字体: \(FontManager.shared.getDisplayName(for: fontName))")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .padding(.top, 5)
                     }
                     .frame(maxWidth: .infinity)
                     .padding()
@@ -232,23 +247,15 @@ struct QuoteCustomizeView: View {
                     }
                 }
             }
+            .sheet(isPresented: $showingFontBrowser) {
+                FontBrowserView(selectedFont: $fontName)
+            }
         }
     }
     
     // 获取字体
     private func getFont(size: CGFloat) -> Font {
-        switch fontName {
-        case "system":
-            return .system(size: size)
-        case "serif":
-            return .system(size: size, design: .serif)
-        case "rounded":
-            return .system(size: size, design: .rounded)
-        case "monospaced":
-            return .system(size: size, design: .monospaced)
-        default:
-            return .system(size: size)
-        }
+        FontManager.shared.getFont(name: fontName, size: size)
     }
     
     // 保存更改

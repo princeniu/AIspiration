@@ -17,8 +17,6 @@ struct FavoritesView: View {
     }, sort: \Quote.createdAt, order: .reverse) private var favoriteQuotes: [Quote]
     
     @State private var selectedFilter: String = "全部"
-    @State private var showingQuoteDetail = false
-    @State private var selectedQuote: Quote?
     
     var body: some View {
         NavigationStack {
@@ -57,14 +55,17 @@ struct FavoritesView: View {
                 } else {
                     List {
                         ForEach(filteredQuotes) { quote in
-                            FavoriteQuoteRow(quote: quote)
-                                .contentShape(Rectangle())
-                                .onTapGesture {
-                                    selectedQuote = quote
-                                    showingQuoteDetail = true
+                            NavigationLink(destination: QuoteDetailView(quote: quote)) {
+                                FavoriteQuoteRow(quote: quote)
+                            }
+                            .swipeActions {
+                                Button(role: .destructive) {
+                                    deleteQuote(quote: quote)
+                                } label: {
+                                    Label("删除", systemImage: "trash")
                                 }
+                            }
                         }
-                        .onDelete(perform: deleteQuotes)
                     }
                     .listStyle(.insetGrouped)
                 }
@@ -76,11 +77,6 @@ struct FavoritesView: View {
                     Button("完成") {
                         dismiss()
                     }
-                }
-            }
-            .sheet(isPresented: $showingQuoteDetail) {
-                if let quote = selectedQuote {
-                    QuoteDetailView(quote: quote)
                 }
             }
         }
@@ -101,6 +97,17 @@ struct FavoritesView: View {
             let quote = filteredQuotes[index]
             modelContext.delete(quote)
         }
+        
+        do {
+            try modelContext.save()
+        } catch {
+            print("删除语录失败: \(error.localizedDescription)")
+        }
+    }
+    
+    // 删除单个语录
+    private func deleteQuote(quote: Quote) {
+        modelContext.delete(quote)
         
         do {
             try modelContext.save()
@@ -185,6 +192,11 @@ struct QuoteDetailView: View {
                     // 语录卡片
                     QuoteCardView(quote: quote)
                         .padding(.horizontal)
+                        .frame(height: 350) // 确保QuoteCardView有固定高度
+                        .background(Color.clear) // 添加背景以确保视图可见
+                        .onAppear {
+                            print("QuoteCardView appeared in QuoteDetailView")
+                        }
                     
                     // 操作按钮
                     HStack(spacing: 40) {
@@ -275,7 +287,7 @@ struct QuoteDetailView: View {
                 }
             }
             .background(Color(.systemBackground))
-            .onChange(of: showingShareSheet) { newValue in
+            .onChange(of: showingShareSheet) { oldValue, newValue in
                 if !newValue {
                     // 重置分享图片
                     shareImage = nil
@@ -288,6 +300,9 @@ struct QuoteDetailView: View {
                 shareImage,
                 quote.author != nil ? "\"\(quote.content)\" —— \(quote.author!)" : "\"\(quote.content)\""
             ].compactMap { $0 })
+        }
+        .onAppear {
+            print("QuoteDetailView appeared with quote: \(quote.content), author: \(quote.author ?? "无"), backgroundColor: \(quote.backgroundColor), textColor: \(quote.textColor), fontName: \(quote.fontName)")
         }
     }
 }

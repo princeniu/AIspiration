@@ -236,7 +236,7 @@ struct HomeView: View {
                     ].compactMap { $0 })
                 }
             }
-            .onChange(of: showingShareSheet) { newValue in
+            .onChange(of: showingShareSheet) { oldValue, newValue in
                 if newValue, let quote = quoteViewModel.currentQuote {
                     // 渲染QuoteCardView为图片
                     let quoteView = QuoteCardView(quote: quote)
